@@ -14,6 +14,8 @@ const PharmacyManager = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalConfig, setModalConfig] = useState({});
 
+  const [editingOrder, setEditingOrder] = useState(null);
+
   // Load orders from Supabase on component mount
   useEffect(() => {
     loadOrders();
@@ -185,35 +187,38 @@ const PharmacyManager = () => {
 
   // Render current page
   const renderPage = () => {
-    switch (currentPage) {
-      case 'add-order':
-        return (
-          <AddOrder 
-            orders={orders} 
-            addOrder={addOrder}
-            setCurrentPage={setCurrentPage} 
-          />
-        );
-      case 'view-orders':
-        return (
-          <ViewOrders 
-            orders={orders} 
-            setCurrentPage={setCurrentPage}
-            updateOrderStatus={updateOrderStatus}
-            deleteOrder={deleteOrder}
-            refreshOrders={loadOrders}
-          />
-        );
-      default:
-        return (
-          <HomePage 
-            orders={orders} 
-            setCurrentPage={setCurrentPage}
-            refreshOrders={loadOrders}
-          />
-        );
-    }
-  };
+  switch (currentPage) {
+    case 'add-order':
+      return (
+        <AddOrder 
+          orders={orders} 
+          addOrder={addOrder}
+          setCurrentPage={setCurrentPage}
+          editingOrder={editingOrder}
+          setEditingOrder={setEditingOrder}
+        />
+      );
+    case 'view-orders':
+      return (
+        <ViewOrders 
+          orders={orders} 
+          setCurrentPage={setCurrentPage}
+          updateOrderStatus={updateOrderStatus}
+          deleteOrder={deleteOrder}
+          refreshOrders={loadOrders}
+          setEditingOrder={setEditingOrder}
+        />
+      );
+    default:
+      return (
+        <HomePage 
+          orders={orders} 
+          setCurrentPage={setCurrentPage}
+          refreshOrders={loadOrders}
+        />
+      );
+  }
+};
 
  return (
   <>

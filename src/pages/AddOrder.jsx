@@ -1,18 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from '../component/Modal';
 
-const AddOrder = ({ orders, addOrder, setCurrentPage }) => {
+const AddOrder = ({ orders, addOrder, setCurrentPage , editingOrder, setEditingOrder}) => {
   const [showModal, setShowModal] = useState(false);
   const [modalConfig, setModalConfig] = useState({});
   
-  const [newOrder, setNewOrder] = useState({
-    pharmacyName: '',
-    pharmacyLocation: '',
-    productName: '',
-    quantity: '',
-    unitPrice: '',
-    urgency: 'Normal'
+  const [newOrder, setNewOrder] = useState(() => {
+    if (editingOrder) {
+      return {
+        pharmacyName: '',
+        pharmacyLocation: '',
+        productName: editingOrder.productName,
+        quantity: '',
+        unitPrice: editingOrder.unitPrice.toString(),
+        urgency: editingOrder.urgency
+      };
+    }
+    return {
+      pharmacyName: '',
+      pharmacyLocation: '',
+      productName: '',
+      quantity: '',
+      unitPrice: '',
+      urgency: 'Normal'
+    };
   });
+
+  
+useEffect(() => {
+  if (editingOrder) {
+    console.log('Setting form for editing:', editingOrder);
+    setNewOrder({
+      pharmacyName: '',
+      pharmacyLocation: '',
+      productName: editingOrder.productName,
+      quantity: '',
+      unitPrice: editingOrder.unitPrice.toString(),
+      urgency: editingOrder.urgency
+    });
+  }
+}, [editingOrder]);
+
+  
 
   const showSuccessModal = (message) => {
     setModalConfig({
@@ -156,9 +185,15 @@ const Header = ({ title }) => (
                     type="text"
                     value={newOrder.productName}
                     onChange={(e) => setNewOrder({...newOrder, productName: e.target.value})}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                    disabled={!!editingOrder}
+                    className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 ${
+                      editingOrder ? 'bg-gray-100 cursor-not-allowed' : ''
+                    }`}
                     placeholder="Enter product name"
                   />
+                  {editingOrder && (
+                    <p className="text-xs text-gray-500 mt-1">Product name cannot be changed when reordering</p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-3 gap-6">
@@ -216,8 +251,19 @@ const Header = ({ title }) => (
                   onClick={handleSubmit} 
                   className={`${btnPrimary} w-full py-4 text-lg`}
                 >
-                  ➕ Add Order
+                  {editingOrder ? '🔄 Create Reorder' : '➕ Add Order'}
                 </button>
+                {editingOrder && (
+                <button 
+                  onClick={() => {
+                    setEditingOrder(null);
+                    setCurrentPage('view-orders');
+                  }}
+                  className="w-full py-4 text-lg bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-semibold transition-colors duration-200 mt-3"
+                >
+                  Cancel Reorder
+                </button>
+              )}
               </div>
             </div>
           </div>

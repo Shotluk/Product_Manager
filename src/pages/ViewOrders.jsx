@@ -2,11 +2,17 @@ import React, { useState } from 'react';
 import { Modal, ConfirmModal } from '../component/Modal';
 import ExcelJS from 'exceljs';
 
-const ViewOrders = ({ orders, setCurrentPage, updateOrderStatus, deleteOrder, refreshOrders }) => {
+const ViewOrders = ({ orders, setCurrentPage, updateOrderStatus, deleteOrder, refreshOrders , setEditingOrder}) => {
   const [showModal, setShowModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [modalConfig, setModalConfig] = useState({});
   const [confirmConfig, setConfirmConfig] = useState({});
+
+  const handleEditOrder = (order) => {
+  setEditingOrder(order);
+  setCurrentPage('add-order');
+};
+
 
   const formatDate = (dateString) => {
   const date = new Date(dateString);
@@ -18,38 +24,68 @@ const ViewOrders = ({ orders, setCurrentPage, updateOrderStatus, deleteOrder, re
 
   const exportToExcel = async () => {
   try {
+    // Group orders by product name
+    const groupedOrders = orders.reduce((acc, order) => {
+      const productName = order.productName;
+      if (!acc[productName]) {
+        acc[productName] = [];
+      }
+      acc[productName].push(order);
+      return acc;
+    }, {});
+
     // Create a new workbook and worksheet
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Orders');
 
-    // Define columns with headers and widths
-    worksheet.columns = [
-      { header: 'Order ID', key: 'orderId', width: 12 },
-      { header: 'Pharmacy Name', key: 'pharmacyName', width: 25 },
-      { header: 'Location', key: 'location', width: 20 },
-      { header: 'Product Name', key: 'productName', width: 30 },
-      { header: 'Quantity', key: 'quantity', width: 10 },
-      { header: 'Unit Price (AED)', key: 'unitPrice', width: 18 },
-      { header: 'Total Price (AED)', key: 'totalPrice', width: 18 },
+    // Define dynamic columns based on max pharmacies per product
+    const maxPharmacies = Math.max(...Object.values(groupedOrders).map(group => group.length));
+    
+    const columns = [
+      { header: 'Product Name', key: 'productName', width: 25 }
+    ];
+
+    // Add pharmacy columns dynamically
+    for (let i = 0; i < maxPharmacies; i++) {
+      columns.push(
+        { header: 'Pharmacy Name', key: `pharmacyName${i}`, width: 20 },
+        { header: 'Quantity', key: `quantity${i}`, width: 10 }
+      );
+    }
+
+    columns.push(
       { header: 'Urgency', key: 'urgency', width: 12 },
       { header: 'Date Ordered', key: 'dateOrdered', width: 15 },
       { header: 'Status', key: 'status', width: 12 }
-    ];
+    );
+
+    worksheet.columns = columns;
 
     // Add data rows
-    orders.forEach(order => {
-      worksheet.addRow({
-        orderId: `#${order.id.toString().padStart(3, '0')}`,
-        pharmacyName: order.pharmacyName,
-        location: order.pharmacyLocation,
-        productName: order.productName,
-        quantity: order.quantity,
-        unitPrice: parseFloat(order.unitPrice.toFixed(2)),
-        totalPrice: parseFloat(order.totalPrice.toFixed(2)),
-        urgency: order.urgency,
-        dateOrdered: formatDate(order.dateOrdered),
-        status: order.status
+    Object.entries(groupedOrders).forEach(([productName, productOrders]) => {
+      const firstOrder = productOrders[0];
+      const rowData = {
+        
+        productName: productName,
+        
+        urgency: firstOrder.urgency,
+        dateOrdered: formatDate(firstOrder.dateOrdered),
+        status: firstOrder.status
+      };
+
+      // Add pharmacy data
+      productOrders.forEach((order, index) => {
+        rowData[`pharmacyName${index}`] = order.pharmacyName;
+        rowData[`quantity${index}`] = order.quantity;
       });
+
+      // Fill empty pharmacy columns
+      for (let i = productOrders.length; i < maxPharmacies; i++) {
+        rowData[`pharmacyName${i}`] = '';
+        rowData[`quantity${i}`] = '';
+      }
+
+      worksheet.addRow(rowData);
     });
 
     // Style the header row
@@ -58,10 +94,10 @@ const ViewOrders = ({ orders, setCurrentPage, updateOrderStatus, deleteOrder, re
       cell.fill = {
         type: 'pattern',
         pattern: 'solid',
-        fgColor: { argb: 'FF4472C4' } // Blue background
+        fgColor: { argb: 'FF4472C4' }
       };
       cell.font = {
-        color: { argb: 'FFFFFFFF' }, // White text
+        color: { argb: 'FFFFFFFF' },
         bold: true
       };
       cell.alignment = {
@@ -94,16 +130,17 @@ const ViewOrders = ({ orders, setCurrentPage, updateOrderStatus, deleteOrder, re
           cell.fill = {
             type: 'pattern',
             pattern: 'solid',
-            fgColor: { argb: 'FFF2F2F2' } // Light gray
+            fgColor: { argb: 'FFF2F2F2' }
           };
         }
 
-        // Alignment based on column
-        if (colNum === 1 || colNum === 5 || colNum === 8 || colNum === 10) { // Order ID, Quantity, Urgency, Status
+        // Center align quantity columns and specific columns
+        const isQuantityCol = cell._column._key && cell._column._key.startsWith('quantity');
+        if (colNum === 1 || isQuantityCol || colNum >= columns.length - 3) { // Order ID, quantities, urgency, date, status
           cell.alignment = { horizontal: 'center', vertical: 'middle' };
-        } else if (colNum === 6 || colNum === 7) { // Price columns
+        } else if (colNum >= columns.length - 5 && colNum <= columns.length - 4) { // Price columns
           cell.alignment = { horizontal: 'right', vertical: 'middle' };
-          cell.numFmt = '" "#,##0.00'; // Currency format
+          cell.numFmt = '" "#,##0.00';
         } else {
           cell.alignment = { horizontal: 'left', vertical: 'middle' };
         }
@@ -113,14 +150,13 @@ const ViewOrders = ({ orders, setCurrentPage, updateOrderStatus, deleteOrder, re
     // Add autofilter
     worksheet.autoFilter = {
       from: 'A1',
-      to: `J${worksheet.rowCount}`
+      to: `${String.fromCharCode(65 + columns.length - 1)}${worksheet.rowCount}`
     };
 
-    // Generate filename with current date
+    // Generate filename and download
     const currentDate = new Date().toISOString().split('T')[0];
-    const filename = `pharmacy-orders-${currentDate}.xlsx`;
+    const filename = `pharmacy-orders-grouped-${currentDate}.xlsx`;
 
-    // Write to buffer and download
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url = window.URL.createObjectURL(blob);
@@ -137,7 +173,6 @@ const ViewOrders = ({ orders, setCurrentPage, updateOrderStatus, deleteOrder, re
     showErrorModal('Failed to export orders. Please try again.');
   }
 };
-
   const showSuccessModal = (message) => {
     setModalConfig({
       type: 'success',
@@ -349,6 +384,13 @@ const ViewOrders = ({ orders, setCurrentPage, updateOrderStatus, deleteOrder, re
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex space-x-2">
+                             <button
+                              onClick={() => handleEditOrder(order)}
+                              className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              title="Edit Order"
+                            >
+                              ✏️ Edit
+                            </button>
                             <button
                               onClick={() => handleDeleteOrder(order.id, order.pharmacyName, order.productName)}
                               className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500"
