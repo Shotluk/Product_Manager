@@ -3,12 +3,16 @@ import HomePage from './pages/Homepage';
 import AddOrder from './pages/AddOrder';
 import ViewOrders from './pages/ViewOrders';
 import { supabaseHelpers } from './supabaseClient';
+import { Modal } from './component/Modal';
 
 const PharmacyManager = () => {
   const [currentPage, setCurrentPage] = useState('home');
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const [showModal, setShowModal] = useState(false);
+  const [modalConfig, setModalConfig] = useState({});
 
   // Load orders from Supabase on component mount
   useEffect(() => {
@@ -23,69 +27,44 @@ const PharmacyManager = () => {
       const result = await supabaseHelpers.fetchOrders();
       
       if (result.success) {
-        // Map database field names to UI field names
-        const mappedOrders = result.data.map(order => ({
-          id: order.id,
-          pharmacyName: order.pharmacyname,
-          pharmacyLocation: order.pharmacylocation,
-          productName: order.productname,
-          quantity: order.quantity,
-          unitPrice: order.unitprice,
-          totalPrice: order.totalprice,
-          urgency: order.urgency,
-          dateOrdered: order.dateordered,
-          status: order.status
-        }));
-        setOrders(mappedOrders);
-      } else {
-        setError(result.error);
-        // Fallback to demo data if Supabase fails
-        setOrders([
-          {
-            id: 1,
-            pharmacyName: "Central Pharmacy",
-            pharmacyLocation: "Downtown Dubai",
-            productName: "Paracetamol 500mg",
-            quantity: 100,
-            unitPrice: 2.50,
-            totalPrice: 250.00,
-            urgency: "Normal",
-            dateOrdered: "2025-01-15",
-            status: "Pending"
-          },
-          {
-            id: 2,
-            pharmacyName: "Marina Medical Center",
-            pharmacyLocation: "Dubai Marina",
-            productName: "Amoxicillin 250mg",
-            quantity: 50,
-            unitPrice: 5.75,
-            totalPrice: 287.50,
-            urgency: "High",
-            dateOrdered: "2025-01-14",
-            status: "Approved"
-          },
-          {
-            id: 3,
-            pharmacyName: "Emirates Pharmacy",
-            pharmacyLocation: "Jumeirah",
-            productName: "Insulin Rapid",
-            quantity: 25,
-            unitPrice: 45.00,
-            totalPrice: 1125.00,
-            urgency: "Critical",
-            dateOrdered: "2025-01-13",
-            status: "Delivered"
-          }
-        ]);
-      }
-    } catch (err) {
-      console.error('Failed to load orders:', err);
-      setError('Failed to load orders');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Map database field names to UI field names
+  const mappedOrders = result.data.map(order => ({
+    id: order.id,
+    pharmacyName: order.pharmacyname,
+    pharmacyLocation: order.pharmacylocation,
+    productName: order.productname,
+    quantity: order.quantity,
+    unitPrice: order.unitprice,
+    totalPrice: order.totalprice,
+    urgency: order.urgency,
+    dateOrdered: order.dateordered,
+    status: order.status
+  }));
+  setOrders(mappedOrders);
+} else {
+  // Show custom modal for database connection failure
+  setModalConfig({
+    type: 'error',
+    title: 'Database Connection Failed',
+    message: 'Database not connected. Please check your connection and try again.'
+  });
+  setShowModal(true);
+  setOrders([]); // Empty array - no orders
+}
+} catch (err) {
+  console.error('Failed to load orders:', err);
+  // Show custom modal for database connection failure
+  setModalConfig({
+    type: 'error',
+    title: 'Database Connection Failed',
+    message: 'Database not connected. Please check your connection and try again.'
+  });
+  setShowModal(true);
+  setOrders([]); // Empty array - no orders
+} finally {
+  setLoading(false);
+}
+    };
 
   // Add new order to Supabase
   const addOrder = async (orderData) => {
@@ -236,12 +215,23 @@ const PharmacyManager = () => {
     }
   };
 
-  return (
-    <>
-      <ErrorAlert />
-      {renderPage()}
-    </>
-  );
+ return (
+  <>
+    <ErrorAlert />
+    {renderPage()}
+    
+    {/* Add this Modal component */}
+    <Modal
+      isOpen={showModal}
+      onClose={() => setShowModal(false)}
+      title={modalConfig.title}
+      type={modalConfig.type}
+    >
+      {modalConfig.message}
+    </Modal>
+  </>
+);
+
 };
 
 export default PharmacyManager;

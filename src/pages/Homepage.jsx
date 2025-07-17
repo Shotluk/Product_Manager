@@ -25,12 +25,7 @@ const HomePage = ({ orders, setCurrentPage, refreshOrders }) => {
         </div>
         
         <div>
-          <button 
-            onClick={() => setCurrentPage('home')} 
-            className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors duration-200 mr-2"
-          >
-            🏠 Home
-          </button>
+          
           <button 
             onClick={refreshOrders}
             className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors duration-200"
