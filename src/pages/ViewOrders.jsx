@@ -1,0 +1,411 @@
+import React, { useState } from 'react';
+import { Modal, ConfirmModal } from '../component/Modal';
+import ExcelJS from 'exceljs';
+
+const ViewOrders = ({ orders, setCurrentPage, updateOrderStatus, deleteOrder, refreshOrders }) => {
+  const [showModal, setShowModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [modalConfig, setModalConfig] = useState({});
+  const [confirmConfig, setConfirmConfig] = useState({});
+
+  const exportToExcel = async () => {
+  try {
+    // Create a new workbook and worksheet
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Orders');
+
+    // Define columns with headers and widths
+    worksheet.columns = [
+      { header: 'Order ID', key: 'orderId', width: 12 },
+      { header: 'Pharmacy Name', key: 'pharmacyName', width: 25 },
+      { header: 'Location', key: 'location', width: 20 },
+      { header: 'Product Name', key: 'productName', width: 30 },
+      { header: 'Quantity', key: 'quantity', width: 10 },
+      { header: 'Unit Price (AED)', key: 'unitPrice', width: 18 },
+      { header: 'Total Price (AED)', key: 'totalPrice', width: 18 },
+      { header: 'Urgency', key: 'urgency', width: 12 },
+      { header: 'Date Ordered', key: 'dateOrdered', width: 15 },
+      { header: 'Status', key: 'status', width: 12 }
+    ];
+
+    // Add data rows
+    orders.forEach(order => {
+      worksheet.addRow({
+        orderId: `#${order.id.toString().padStart(3, '0')}`,
+        pharmacyName: order.pharmacyName,
+        location: order.pharmacyLocation,
+        productName: order.productName,
+        quantity: order.quantity,
+        unitPrice: parseFloat(order.unitPrice.toFixed(2)),
+        totalPrice: parseFloat(order.totalPrice.toFixed(2)),
+        urgency: order.urgency,
+        dateOrdered: order.dateOrdered,
+        status: order.status
+      });
+    });
+
+    // Style the header row
+    const headerRow = worksheet.getRow(1);
+    headerRow.eachCell((cell) => {
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF4472C4' } // Blue background
+      };
+      cell.font = {
+        color: { argb: 'FFFFFFFF' }, // White text
+        bold: true
+      };
+      cell.alignment = {
+        horizontal: 'center',
+        vertical: 'middle'
+      };
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FF000000' } },
+        left: { style: 'thin', color: { argb: 'FF000000' } },
+        bottom: { style: 'thin', color: { argb: 'FF000000' } },
+        right: { style: 'thin', color: { argb: 'FF000000' } }
+      };
+    });
+
+    // Style data rows
+    for (let rowNum = 2; rowNum <= worksheet.rowCount; rowNum++) {
+      const row = worksheet.getRow(rowNum);
+      
+      row.eachCell((cell, colNum) => {
+        // Add borders to all cells
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FF000000' } },
+          left: { style: 'thin', color: { argb: 'FF000000' } },
+          bottom: { style: 'thin', color: { argb: 'FF000000' } },
+          right: { style: 'thin', color: { argb: 'FF000000' } }
+        };
+
+        // Alternating row colors
+        if (rowNum % 2 === 0) {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFF2F2F2' } // Light gray
+          };
+        }
+
+        // Alignment based on column
+        if (colNum === 1 || colNum === 5 || colNum === 8 || colNum === 10) { // Order ID, Quantity, Urgency, Status
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        } else if (colNum === 6 || colNum === 7) { // Price columns
+          cell.alignment = { horizontal: 'right', vertical: 'middle' };
+          cell.numFmt = '" "#,##0.00'; // Currency format
+        } else {
+          cell.alignment = { horizontal: 'left', vertical: 'middle' };
+        }
+      });
+    }
+
+    // Add autofilter
+    worksheet.autoFilter = {
+      from: 'A1',
+      to: `J${worksheet.rowCount}`
+    };
+
+    // Generate filename with current date
+    const currentDate = new Date().toISOString().split('T')[0];
+    const filename = `pharmacy-orders-${currentDate}.xlsx`;
+
+    // Write to buffer and download
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(url);
+
+    showSuccessModal(`Orders exported successfully! Downloaded as ${filename}`);
+    
+  } catch (error) {
+    console.error('Export error:', error);
+    showErrorModal('Failed to export orders. Please try again.');
+  }
+};
+
+  const showSuccessModal = (message) => {
+    setModalConfig({
+      type: 'success',
+      title: 'Success',
+      message: message
+    });
+    setShowModal(true);
+  };
+
+  const showErrorModal = (message) => {
+    setModalConfig({
+      type: 'error',
+      title: 'Error',
+      message: message
+    });
+    setShowModal(true);
+  };
+
+  const handleDeleteOrder = async (orderId, pharmacyName, productName) => {
+    setConfirmConfig({
+      title: 'Delete Order',
+      message: (
+        <div>
+          <p className="mb-2">Are you sure you want to delete this order?</p>
+          <div className="bg-gray-50 p-3 rounded-lg">
+            <p className="font-semibold">Pharmacy: {pharmacyName}</p>
+            <p className="font-semibold">Product: {productName}</p>
+          </div>
+          <p className="mt-2 text-red-600 font-medium">This action cannot be undone.</p>
+        </div>
+      ),
+      confirmText: 'Delete',
+      type: 'danger',
+      onConfirm: async () => {
+        const result = await deleteOrder(orderId);
+        if (result.success) {
+          showSuccessModal('Order deleted successfully!');
+        } else {
+          showErrorModal(`Failed to delete order: ${result.error}`);
+        }
+      }
+    });
+    setShowConfirmModal(true);
+  };
+
+  const handleStatusChange = async (orderId, newStatus) => {
+    const result = await updateOrderStatus(orderId, newStatus);
+    
+    if (result.success) {
+      showSuccessModal(`Order status updated to ${newStatus}!`);
+    } else {
+      showErrorModal(`Failed to update status: ${result.error}`);
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch(status) {
+      case 'Pending': return 'bg-yellow-100 text-yellow-800';
+      case 'Approved': return 'bg-blue-100 text-blue-800';
+      case 'Delivered': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getUrgencyColor = (urgency) => {
+    switch(urgency) {
+      case 'Normal': return 'bg-gray-100 text-gray-800';
+      case 'High': return 'bg-orange-100 text-orange-800';
+      case 'Critical': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  // Styles
+  const bgPattern = "bg-gradient-to-br from-blue-50 to-blue-100";
+  const cardStyle = "bg-white rounded-2xl shadow-lg border border-gray-200";
+  const btnPrimary = "bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-semibold transition-colors duration-200";
+
+  // Header Component
+  const Header = ({ title }) => (
+    <header className="bg-white border-b border-gray-200">
+      <div className="flex justify-between items-center px-8 py-5">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+            <span className="text-white font-bold text-sm">℞</span>
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">PharmaMed Manager</h1>
+            <p className="text-xs text-gray-500">Product Ordering System</p>
+          </div>
+        </div>
+        
+        <div className="text-center">
+          <div className="text-lg font-bold text-gray-900">{title}</div>
+        </div>
+        
+        <div>
+          <button 
+            onClick={() => setCurrentPage('home')} 
+            className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors duration-200 mr-2"
+          >
+            🏠 Home
+          </button>
+          <button 
+            onClick={refreshOrders}
+            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors duration-200"
+            title="Refresh Data"
+          >
+            🔄
+          </button>
+        </div>
+      </div>
+    </header>
+  );
+
+  return (
+    <>
+      <div className={`min-h-screen ${bgPattern}`}>
+        <Header title="All Orders" />
+        
+        <div className="py-8 px-8">
+          <div className="max-w-7xl mx-auto">
+            
+            <div className="mb-6 flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-gray-900">
+                Order Management ({orders.length} orders)
+              </h2>
+              <div className="flex space-x-3">
+                <button 
+                  onClick={exportToExcel}
+                  className="px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-semibold transition-colors duration-200 flex items-center space-x-2"
+                  title="Export to Excel"
+                >
+                  <span>📊</span>
+                  <span>Export Excel</span>
+                </button>
+                <button 
+                  onClick={() => setCurrentPage('add-order')} 
+                  className={`${btnPrimary} px-6 py-3`}
+                >
+                  ➕ Add New Order
+                </button>
+              </div>
+            </div>
+
+            <div className={`${cardStyle} overflow-hidden`}>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase">Order ID</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase">Pharmacy</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase">Product</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase">Quantity</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase">Unit Price</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase">Total</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase">Urgency</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase">Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {orders.map((order) => (
+                      <tr key={order.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-bold text-gray-900">#{order.id.toString().padStart(3, '0')}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-semibold text-gray-900">{order.pharmacyName}</div>
+                          <div className="text-xs text-gray-500">{order.pharmacyLocation}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-900">{order.productName}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-bold text-gray-900">{order.quantity}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-900">AED {order.unitPrice.toFixed(2)}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-bold text-blue-600">AED {order.totalPrice.toFixed(2)}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold ${getUrgencyColor(order.urgency)}`}>
+                            {order.urgency}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-900">{order.dateOrdered}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <select
+                            value={order.status}
+                            onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                            className="text-xs font-semibold rounded-full px-3 py-1 border-0 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            style={{
+                              backgroundColor: order.status === 'Pending' ? '#fef3c7' : 
+                                             order.status === 'Approved' ? '#dbeafe' : '#dcfce7',
+                              color: order.status === 'Pending' ? '#92400e' : 
+                                    order.status === 'Approved' ? '#1e40af' : '#166534'
+                            }}
+                          >
+                            <option value="Pending">Pending</option>
+                            <option value="Approved">Approved</option>
+                            <option value="Delivered">Delivered</option>
+                          </select>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => handleDeleteOrder(order.id, order.pharmacyName, order.productName)}
+                              className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500"
+                              title="Delete Order"
+                            >
+                              🗑️ Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-4 gap-4">
+              <div className={`${cardStyle} p-4 text-center`}>
+                <div className="text-2xl font-bold text-gray-900">{orders.length}</div>
+                <div className="text-sm font-semibold text-gray-600">Total Orders</div>
+              </div>
+              <div className={`${cardStyle} p-4 text-center`}>
+                <div className="text-2xl font-bold text-yellow-600">
+                  {orders.filter(o => o.status === 'Pending').length}
+                </div>
+                <div className="text-sm font-semibold text-gray-600">Pending</div>
+              </div>
+              <div className={`${cardStyle} p-4 text-center`}>
+                <div className="text-2xl font-bold text-red-600">
+                  {orders.filter(o => o.urgency === 'Critical').length}
+                </div>
+                <div className="text-sm font-semibold text-gray-600">Critical</div>
+              </div>
+              <div className={`${cardStyle} p-4 text-center`}>
+                <div className="text-2xl font-bold text-green-600">
+                  AED {orders.reduce((sum, order) => sum + order.totalPrice, 0).toFixed(2)}
+                </div>
+                <div className="text-sm font-semibold text-gray-600">Total Value</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Custom Modals */}
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={modalConfig.title}
+        type={modalConfig.type}
+      >
+        {modalConfig.message}
+      </Modal>
+
+      <ConfirmModal
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={confirmConfig.onConfirm}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        confirmText={confirmConfig.confirmText}
+        type={confirmConfig.type}
+      />
+    </>
+  );
+};
+
+export default ViewOrders;
