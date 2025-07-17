@@ -8,6 +8,14 @@ const ViewOrders = ({ orders, setCurrentPage, updateOrderStatus, deleteOrder, re
   const [modalConfig, setModalConfig] = useState({});
   const [confirmConfig, setConfirmConfig] = useState({});
 
+  const formatDate = (dateString) => {
+  const date = new Date(dateString);
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
   const exportToExcel = async () => {
   try {
     // Create a new workbook and worksheet
@@ -39,7 +47,7 @@ const ViewOrders = ({ orders, setCurrentPage, updateOrderStatus, deleteOrder, re
         unitPrice: parseFloat(order.unitPrice.toFixed(2)),
         totalPrice: parseFloat(order.totalPrice.toFixed(2)),
         urgency: order.urgency,
-        dateOrdered: order.dateOrdered,
+        dateOrdered: formatDate(order.dateOrdered),
         status: order.status
       });
     });
@@ -320,7 +328,7 @@ const ViewOrders = ({ orders, setCurrentPage, updateOrderStatus, deleteOrder, re
                           </span>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="text-sm text-gray-900">{order.dateOrdered}</div>
+                          <div className="text-sm text-gray-900">{formatDate(order.dateOrdered)}</div>
                         </td>
                         <td className="px-6 py-4">
                           <select
