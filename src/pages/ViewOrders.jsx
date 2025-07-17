@@ -256,7 +256,7 @@ const ViewOrders = ({ orders, setCurrentPage, updateOrderStatus, deleteOrder, re
   return (
     <>
       <div className={`min-h-screen ${bgPattern}`}>
-        <Header title="All Orders" />
+        <Header title="" />
         
         <div className="py-8 px-8">
           <div className="max-w-7xl mx-auto">
