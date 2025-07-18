@@ -74,12 +74,7 @@ const HomePage = ({ orders, setCurrentPage, refreshOrders }) => {
           </div>
 
           <div className="flex justify-center space-x-6">
-            <button 
-              onClick={() => setCurrentPage('add-order')} 
-              className={`${btnPrimary} px-8 py-3 text-lg`}
-            >
-              ➕ Add New Order
-            </button>
+            
             <button 
               onClick={() => setCurrentPage('view-orders')} 
               className="px-8 py-3 text-lg bg-white text-gray-800 hover:bg-gray-50 border-2 border-gray-200 rounded-lg font-semibold transition-colors duration-200"
