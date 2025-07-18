@@ -33,7 +33,6 @@ const PharmacyManager = () => {
   const mappedOrders = result.data.map(order => ({
     id: order.id,
     pharmacyName: order.pharmacyname,
-    pharmacyLocation: order.pharmacylocation,
     productName: order.productname,
     quantity: order.quantity,
     unitPrice: order.unitprice,
@@ -80,7 +79,6 @@ const PharmacyManager = () => {
         const mappedOrder = {
           id: result.data.id,
           pharmacyName: result.data.pharmacyname,
-          pharmacyLocation: result.data.pharmacylocation,
           productName: result.data.productname,
           quantity: result.data.quantity,
           unitPrice: result.data.unitprice,
