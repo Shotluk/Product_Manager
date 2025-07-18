@@ -8,6 +8,8 @@ const ViewOrders = ({ orders, setCurrentPage, updateOrderStatus, deleteOrder, re
   const [modalConfig, setModalConfig] = useState({});
   const [confirmConfig, setConfirmConfig] = useState({});
 
+  const [showTooltip, setShowTooltip] = useState(false);
+
   const handleEditOrder = (order) => {
   setEditingOrder(order);
   setCurrentPage('add-order');
@@ -309,6 +311,7 @@ const ViewOrders = ({ orders, setCurrentPage, updateOrderStatus, deleteOrder, re
               <h2 className="text-2xl font-bold text-gray-900">
                 Order Management ({orders.length} orders)
               </h2>
+              
               <div className="flex space-x-3">
                 <button 
                   onClick={exportToExcel}
@@ -318,12 +321,26 @@ const ViewOrders = ({ orders, setCurrentPage, updateOrderStatus, deleteOrder, re
                   <span>📊</span>
                   <span>Export Excel</span>
                 </button>
-                <button 
-                  onClick={() => setCurrentPage('add-order')} 
-                  className={`${btnPrimary} px-6 py-3`}
-                >
-                  ➕ Add New Order
-                </button>
+                
+                {/* Wrap the button in a relative container */}
+                <div className="relative">
+                  <button 
+                    onClick={() => setCurrentPage('add-order')} 
+                    onMouseEnter={() => setShowTooltip(true)}
+                    onMouseLeave={() => setShowTooltip(false)}
+                    className={`${btnPrimary} px-6 py-3`}
+                  >
+                    ➕ Add New Order
+                  </button>
+                  
+                  {/* Tooltip - positioned to the right instead of center */}
+                  {showTooltip && (
+                    <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg shadow-lg whitespace-nowrap z-10">
+                      Look for the product name before adding new product
+                      <div className="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
