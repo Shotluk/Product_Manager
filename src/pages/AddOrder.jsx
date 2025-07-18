@@ -9,7 +9,6 @@ const AddOrder = ({ orders, addOrder, setCurrentPage , editingOrder, setEditingO
     if (editingOrder) {
       return {
         pharmacyName: '',
-        pharmacyLocation: '',
         productName: editingOrder.productName,
         quantity: '',
         unitPrice: editingOrder.unitPrice.toString(),
@@ -18,7 +17,6 @@ const AddOrder = ({ orders, addOrder, setCurrentPage , editingOrder, setEditingO
     }
     return {
       pharmacyName: '',
-      pharmacyLocation: '',
       productName: '',
       quantity: '',
       unitPrice: '',
@@ -32,7 +30,6 @@ useEffect(() => {
     console.log('Setting form for editing:', editingOrder);
     setNewOrder({
       pharmacyName: '',
-      pharmacyLocation: '',
       productName: editingOrder.productName,
       quantity: '',
       unitPrice: editingOrder.unitPrice.toString(),
@@ -62,7 +59,7 @@ useEffect(() => {
   };
 
   const handleSubmit = async () => {
-    if (!newOrder.pharmacyName || !newOrder.pharmacyLocation || !newOrder.productName || 
+    if (!newOrder.pharmacyName || !newOrder.productName || 
         !newOrder.quantity || !newOrder.unitPrice) {
       showErrorModal('Please fill in all fields before submitting.');
       return;
@@ -71,7 +68,6 @@ useEffect(() => {
     const totalPrice = parseFloat(newOrder.quantity) * parseFloat(newOrder.unitPrice);
     const orderData = {
       pharmacyname: newOrder.pharmacyName,
-      pharmacylocation: newOrder.pharmacyLocation,
       productname: newOrder.productName,
       quantity: parseInt(newOrder.quantity),
       unitprice: parseFloat(newOrder.unitPrice),
@@ -86,7 +82,6 @@ useEffect(() => {
     if (result.success) {
       setNewOrder({
         pharmacyName: '',
-        pharmacyLocation: '',
         productName: '',
         quantity: '',
         unitPrice: '',
@@ -155,8 +150,7 @@ const Header = ({ title }) => (
               </h2>
               
               <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-6">
-                  <div>
+                <div >                  
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Pharmacy Name</label>
                     <input
                       type="text"
@@ -165,18 +159,6 @@ const Header = ({ title }) => (
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
                       placeholder="Enter pharmacy name"
                     />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Location</label>
-                    <input
-                      type="text"
-                      value={newOrder.pharmacyLocation}
-                      onChange={(e) => setNewOrder({...newOrder, pharmacyLocation: e.target.value})}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                      placeholder="Enter location"
-                    />
-                  </div>
                 </div>
 
                 <div>

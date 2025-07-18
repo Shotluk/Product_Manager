@@ -54,6 +54,7 @@ const ViewOrders = ({ orders, setCurrentPage, updateOrderStatus, deleteOrder, re
     }
 
     columns.push(
+      { header: 'Total Quantity', key: 'totalQuantity', width: 15 }, // ADD THIS LINE
       { header: 'Urgency', key: 'urgency', width: 12 },
       { header: 'Date Ordered', key: 'dateOrdered', width: 15 },
       { header: 'Status', key: 'status', width: 12 }
@@ -64,10 +65,11 @@ const ViewOrders = ({ orders, setCurrentPage, updateOrderStatus, deleteOrder, re
     // Add data rows
     Object.entries(groupedOrders).forEach(([productName, productOrders]) => {
       const firstOrder = productOrders[0];
+      const totalQuantity = productOrders.reduce((sum, o) => sum + o.quantity, 0); // CALCULATE TOTAL
+      
       const rowData = {
-        
         productName: productName,
-        
+        totalQuantity: totalQuantity, // ADD THIS LINE
         urgency: firstOrder.urgency,
         dateOrdered: formatDate(firstOrder.dateOrdered),
         status: firstOrder.status
@@ -135,12 +137,19 @@ const ViewOrders = ({ orders, setCurrentPage, updateOrderStatus, deleteOrder, re
         }
 
         // Center align quantity columns and specific columns
-        const isQuantityCol = cell._column._key && cell._column._key.startsWith('quantity');
-        if (colNum === 1 || isQuantityCol || colNum >= columns.length - 3) { // Order ID, quantities, urgency, date, status
+        const isQuantityCol = cell._column._key && (cell._column._key.startsWith('quantity') || cell._column._key === 'totalQuantity');
+        if (colNum === 1 || isQuantityCol || colNum >= columns.length - 3) { // Product name, quantities, total quantity, urgency, date, status
           cell.alignment = { horizontal: 'center', vertical: 'middle' };
-        } else if (colNum >= columns.length - 5 && colNum <= columns.length - 4) { // Price columns
-          cell.alignment = { horizontal: 'right', vertical: 'middle' };
-          cell.numFmt = '" "#,##0.00';
+          
+          // Make total quantity column bold and highlighted
+          if (cell._column._key === 'totalQuantity') {
+            cell.font = { bold: true };
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFE6F3FF' } // Light blue background
+            };
+          }
         } else {
           cell.alignment = { horizontal: 'left', vertical: 'middle' };
         }
@@ -343,7 +352,7 @@ const ViewOrders = ({ orders, setCurrentPage, updateOrderStatus, deleteOrder, re
                         </td>
                         <td className="px-6 py-4">
                           <div className="text-sm font-semibold text-gray-900">{order.pharmacyName}</div>
-                          <div className="text-xs text-gray-500">{order.pharmacyLocation}</div>
+                          
                         </td>
                         <td className="px-6 py-4">
                           <div className="text-sm text-gray-900">{order.productName}</div>
