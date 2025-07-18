@@ -150,17 +150,20 @@ const Header = ({ title }) => (
               </h2>
               
               <div className="space-y-6">
-                <div >                  
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Pharmacy Name</label>
-                    <input
-                      type="text"
-                      value={newOrder.pharmacyName}
-                      onChange={(e) => setNewOrder({...newOrder, pharmacyName: e.target.value})}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                      placeholder="Enter pharmacy name"
-                    />
+                <div>                  
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Pharmacy Name</label>
+                  <select
+                    value={newOrder.pharmacyName}
+                    onChange={(e) => setNewOrder({...newOrder, pharmacyName: e.target.value})}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  >
+                    <option value="">Select pharmacy</option>
+                    <option value="SAK">SAK</option>
+                    <option value="SAN">SAN</option>
+                    <option value="ASP">ASP</option>
+                    <option value="ADP">ADP</option>
+                  </select>
                 </div>
-
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Product Name</label>
                   <input
