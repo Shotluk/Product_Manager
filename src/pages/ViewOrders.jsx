@@ -10,6 +10,9 @@ const ViewOrders = ({ orders, setCurrentPage, updateOrderStatus, deleteOrder, re
 
   const [showTooltip, setShowTooltip] = useState(false);
 
+  const [deletePin, setDeletePin] = useState('');
+  const [currentDeleteOrder, setCurrentDeleteOrder] = useState(null);
+
   const handleEditOrder = (order) => {
   setEditingOrder(order);
   setCurrentPage('add-order');
@@ -203,32 +206,50 @@ const ViewOrders = ({ orders, setCurrentPage, updateOrderStatus, deleteOrder, re
   };
 
   const handleDeleteOrder = async (orderId, pharmacyName, productName) => {
-    setConfirmConfig({
-      title: 'Delete Order',
-      message: (
-        <div>
-          <p className="mb-2">Are you sure you want to delete this order?</p>
-          <div className="bg-gray-50 p-3 rounded-lg">
-            <p className="font-semibold">Pharmacy: {pharmacyName}</p>
-            <p className="font-semibold">Product: {productName}</p>
-          </div>
-          <p className="mt-2 text-red-600 font-medium">This action cannot be undone.</p>
+  let pinInput = '';
+  
+  setConfirmConfig({
+    title: 'Delete Order - PIN Required',
+    message: (
+      <div>
+        <p className="mb-2">This action cannot be undone. Are you sure you want to delete this order?</p>
+        <div className="bg-gray-50 p-3 rounded-lg mb-4">
+          <p className="font-semibold">Pharmacy: {pharmacyName}</p>
+          <p className="font-semibold">Product: {productName}</p>
         </div>
-      ),
-      confirmText: 'Delete',
-      type: 'danger',
-      onConfirm: async () => {
-        const result = await deleteOrder(orderId);
-        if (result.success) {
-          showSuccessModal('Order deleted successfully!');
-        } else {
-          showErrorModal(`Failed to delete order: ${result.error}`);
-        }
+        <div className="mb-4">
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Enter PIN to confirm deletion:
+          </label>
+          <input
+            type="text"
+            onChange={(e) => { pinInput = e.target.value; }}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-red-500"
+            placeholder="Enter 4-digit PIN"
+            maxLength="4"
+            autoFocus
+          />
+        </div>
+      </div>
+    ),
+    confirmText: 'Delete Order',
+    type: 'danger',
+    onConfirm: async () => {
+      if (pinInput !== '5678') {
+        showErrorModal('Incorrect delete PIN. Deletion cancelled.');
+        return;
       }
-    });
-    setShowConfirmModal(true);
-  };
-
+      
+      const result = await deleteOrder(orderId);
+      if (result.success) {
+        showSuccessModal('Order deleted successfully!');
+      } else {
+        showErrorModal(`Failed to delete order: ${result.error}`);
+      }
+    }
+  });
+  setShowConfirmModal(true);
+};
   const handleStatusChange = async (orderId, newStatus) => {
     const result = await updateOrderStatus(orderId, newStatus);
     
