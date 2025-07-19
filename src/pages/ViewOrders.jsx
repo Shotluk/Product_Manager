@@ -18,13 +18,43 @@ const ViewOrders = ({ orders, setCurrentPage, updateOrderStatus, deleteOrder, re
   setCurrentPage('add-order');
 };
 
+  const formatDubaiDate = (utcDateString) => {
+  if (!utcDateString) return '';
 
-  const formatDate = (dateString) => {
+  const date = new Date(utcDateString);
+  if (isNaN(date)) return 'Invalid Date';
+
+  // Format date in Dubai timezone
+  return date.toLocaleString('en-GB', {
+    timeZone: 'Asia/Dubai',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+};
+
+
+
+// ALSO REPLACE the formatDateForExcel function with this:
+
+const formatDateForExcel = (dateString) => {
   const date = new Date(dateString);
-  const day = date.getDate().toString().padStart(2, '0');
-  const month = (date.getMonth() + 1).toString().padStart(2, '0');
-  const year = date.getFullYear();
-  return `${day}/${month}/${year}`;
+  
+  // Use toLocaleString to get the local timezone
+  const localDateTime = date.toLocaleString('en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric', 
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false // Use 24-hour format
+  });
+  
+  return localDateTime.replace(',', ''); // Remove comma between date and time
 };
 
   const exportToExcel = async () => {
@@ -61,7 +91,7 @@ const ViewOrders = ({ orders, setCurrentPage, updateOrderStatus, deleteOrder, re
     columns.push(
       { header: 'Total Quantity', key: 'totalQuantity', width: 15 }, // ADD THIS LINE
       { header: 'Urgency', key: 'urgency', width: 12 },
-      { header: 'Date Ordered', key: 'dateOrdered', width: 15 },
+      { header: 'Date Ordered', key: 'dateOrdered', width: 20 },
       { header: 'Status', key: 'status', width: 12 }
     );
 
@@ -76,7 +106,7 @@ const ViewOrders = ({ orders, setCurrentPage, updateOrderStatus, deleteOrder, re
         productName: productName,
         totalQuantity: totalQuantity, // ADD THIS LINE
         urgency: firstOrder.urgency,
-        dateOrdered: formatDate(firstOrder.dateOrdered),
+        dateOrdered: formatDubaiDate(firstOrder.created_at),
         status: firstOrder.status
       };
 
@@ -377,13 +407,14 @@ const ViewOrders = ({ orders, setCurrentPage, updateOrderStatus, deleteOrder, re
                       <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase">Unit Price</th>
                       <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase">Total</th>
                       <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase">Urgency</th>
-                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase">Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase">Date & Time</th>
                       <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase">Status</th>
                       <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {orders.map((order) => (
+                      
                       <tr key={order.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4">
                           <div className="text-sm font-bold text-gray-900">#{order.id.toString().padStart(3, '0')}</div>
@@ -409,8 +440,9 @@ const ViewOrders = ({ orders, setCurrentPage, updateOrderStatus, deleteOrder, re
                             {order.urgency}
                           </span>
                         </td>
+                        
                         <td className="px-6 py-4">
-                          <div className="text-sm text-gray-900">{formatDate(order.dateOrdered)}</div>
+                          <div className="text-sm text-gray-900">{formatDubaiDate(order.created_at)}</div>
                         </td>
                         <td className="px-6 py-4">
                           <select

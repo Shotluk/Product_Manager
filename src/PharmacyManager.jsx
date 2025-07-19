@@ -38,7 +38,7 @@ const PharmacyManager = () => {
     unitPrice: order.unitprice,
     totalPrice: order.totalprice,
     urgency: order.urgency,
-    dateOrdered: order.dateordered,
+    created_at: order.created_at,
     status: order.status
   }));
   setOrders(mappedOrders);

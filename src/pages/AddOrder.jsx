@@ -65,6 +65,9 @@ useEffect(() => {
       return;
     }
     
+    const now = new Date();
+    const dateTimeString = now.toISOString();
+
     const totalPrice = parseFloat(newOrder.quantity) * parseFloat(newOrder.unitPrice);
     const orderData = {
       pharmacyname: newOrder.pharmacyName,
@@ -73,9 +76,11 @@ useEffect(() => {
       unitprice: parseFloat(newOrder.unitPrice),
       totalprice: totalPrice,
       urgency: newOrder.urgency,
-      dateordered: new Date().toISOString().split('T')[0],
+      dateordered: dateTimeString,
       status: 'Pending'
     };
+
+    console.log('Saving order with dateordered:', dateTimeString);
 
     const result = await addOrder(orderData);
     
