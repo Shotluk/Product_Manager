@@ -85,6 +85,7 @@ const PharmacyManager = () => {
           totalPrice: result.data.totalprice,
           urgency: result.data.urgency,
           dateOrdered: result.data.dateordered,
+          created_at: result.data.created_at,
           status: result.data.status
         };
         setOrders(prevOrders => [mappedOrder, ...prevOrders]);

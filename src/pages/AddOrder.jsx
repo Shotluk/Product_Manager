@@ -93,6 +93,9 @@ useEffect(() => {
         urgency: 'Normal'
       });
       showSuccessModal('Order added successfully! You can add another order or view all orders.');
+      if (editingOrder) {
+      setEditingOrder(null);
+    }
     } else {
       showErrorModal(`Failed to add order: ${result.error}`);
     }
