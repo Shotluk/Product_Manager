@@ -57,7 +57,7 @@ const formatDateForExcel = (dateString) => {
   return localDateTime.replace(',', ''); // Remove comma between date and time
 };
 
-  const exportToExcel = async () => {
+const exportToExcel = async () => {
   try {
     // Group orders by product name
     const groupedOrders = orders.reduce((acc, order) => {
@@ -69,42 +69,44 @@ const formatDateForExcel = (dateString) => {
       return acc;
     }, {});
 
-    // Create a new workbook and worksheet
+    // Create a new workbook
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Orders');
+
+    // ===== FIRST SHEET: Detailed Orders =====
+    const detailSheet = workbook.addWorksheet('Detailed Orders');
 
     // Define dynamic columns based on max pharmacies per product
     const maxPharmacies = Math.max(...Object.values(groupedOrders).map(group => group.length));
     
     const columns = [
-      { header: 'Product Name', key: 'productName', width: 25 }
+      { header: 'Product Name', key: 'productName', width: 45 }
     ];
 
     // Add pharmacy columns dynamically
     for (let i = 0; i < maxPharmacies; i++) {
       columns.push(
-        { header: 'Pharmacy Name', key: `pharmacyName${i}`, width: 20 },
-        { header: 'Quantity', key: `quantity${i}`, width: 10 }
+        { header: 'Phy Name', key: `pharmacyName${i}`, width: 10 },
+        { header: 'Qty', key: `quantity${i}`, width: 10 }
       );
     }
 
     columns.push(
-      { header: 'Total Quantity', key: 'totalQuantity', width: 15 }, // ADD THIS LINE
+      { header: 'Total Qty', key: 'totalQuantity', width: 15 },
       { header: 'Urgency', key: 'urgency', width: 12 },
       { header: 'Date Ordered', key: 'dateOrdered', width: 20 },
       { header: 'Status', key: 'status', width: 12 }
     );
 
-    worksheet.columns = columns;
+    detailSheet.columns = columns;
 
-    // Add data rows
+    // Add data rows to detail sheet
     Object.entries(groupedOrders).forEach(([productName, productOrders]) => {
       const firstOrder = productOrders[0];
-      const totalQuantity = productOrders.reduce((sum, o) => sum + o.quantity, 0); // CALCULATE TOTAL
+      const totalQuantity = productOrders.reduce((sum, o) => sum + o.quantity, 0);
       
       const rowData = {
         productName: productName,
-        totalQuantity: totalQuantity, // ADD THIS LINE
+        totalQuantity: totalQuantity,
         urgency: firstOrder.urgency,
         dateOrdered: formatDubaiDate(firstOrder.created_at),
         status: firstOrder.status
@@ -122,12 +124,12 @@ const formatDateForExcel = (dateString) => {
         rowData[`quantity${i}`] = '';
       }
 
-      worksheet.addRow(rowData);
+      detailSheet.addRow(rowData);
     });
 
-    // Style the header row
-    const headerRow = worksheet.getRow(1);
-    headerRow.eachCell((cell) => {
+    // Style the detail sheet header row
+    const detailHeaderRow = detailSheet.getRow(1);
+    detailHeaderRow.eachCell((cell) => {
       cell.fill = {
         type: 'pattern',
         pattern: 'solid',
@@ -149,9 +151,9 @@ const formatDateForExcel = (dateString) => {
       };
     });
 
-    // Style data rows
-    for (let rowNum = 2; rowNum <= worksheet.rowCount; rowNum++) {
-      const row = worksheet.getRow(rowNum);
+    // Style detail sheet data rows
+    for (let rowNum = 2; rowNum <= detailSheet.rowCount; rowNum++) {
+      const row = detailSheet.getRow(rowNum);
       
       row.eachCell((cell, colNum) => {
         // Add borders to all cells
@@ -173,7 +175,7 @@ const formatDateForExcel = (dateString) => {
 
         // Center align quantity columns and specific columns
         const isQuantityCol = cell._column._key && (cell._column._key.startsWith('quantity') || cell._column._key === 'totalQuantity');
-        if (colNum === 1 || isQuantityCol || colNum >= columns.length - 3) { // Product name, quantities, total quantity, urgency, date, status
+        if (colNum === 1 || isQuantityCol || colNum >= columns.length - 3) {
           cell.alignment = { horizontal: 'center', vertical: 'middle' };
           
           // Make total quantity column bold and highlighted
@@ -182,7 +184,7 @@ const formatDateForExcel = (dateString) => {
             cell.fill = {
               type: 'pattern',
               pattern: 'solid',
-              fgColor: { argb: 'FFE6F3FF' } // Light blue background
+              fgColor: { argb: 'FFE6F3FF' }
             };
           }
         } else {
@@ -191,15 +193,95 @@ const formatDateForExcel = (dateString) => {
       });
     }
 
-    // Add autofilter
-    worksheet.autoFilter = {
+    // Add autofilter to detail sheet
+    detailSheet.autoFilter = {
       from: 'A1',
-      to: `${String.fromCharCode(65 + columns.length - 1)}${worksheet.rowCount}`
+      to: `${String.fromCharCode(65 + columns.length - 1)}${detailSheet.rowCount}`
     };
+
+    // ===== SECOND SHEET: Summary =====
+    const summarySheet = workbook.addWorksheet('Summary');
+
+    // Define columns for summary sheet
+    summarySheet.columns = [
+      { header: 'Product Name', key: 'productName', width: 45 },
+      { header: 'Total Quantity', key: 'totalQuantity', width: 15 }
+    ];
+
+    // Add summary data
+    Object.entries(groupedOrders).forEach(([productName, productOrders]) => {
+      const totalQuantity = productOrders.reduce((sum, o) => sum + o.quantity, 0);
+      
+      summarySheet.addRow({
+        productName: productName,
+        totalQuantity: totalQuantity
+      });
+    });
+
+    const summaryHeaderRow = summarySheet.getRow(1);
+summaryHeaderRow.eachCell((cell) => {
+  cell.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FF4472C4' } // Same blue as detail sheet
+  };
+  cell.font = {
+    color: { argb: 'FFFFFFFF' },
+    bold: true
+  };
+  cell.alignment = {
+    horizontal: 'center',
+    vertical: 'middle'
+  };
+  cell.border = {
+    top: { style: 'thin', color: { argb: 'FF000000' } },
+    left: { style: 'thin', color: { argb: 'FF000000' } },
+    bottom: { style: 'thin', color: { argb: 'FF000000' } },
+    right: { style: 'thin', color: { argb: 'FF000000' } }
+  };
+});
+
+// Style summary sheet data rows
+for (let rowNum = 2; rowNum <= summarySheet.rowCount; rowNum++) {
+  const row = summarySheet.getRow(rowNum);
+  
+  row.eachCell((cell, colNum) => {
+    // Add borders to all cells
+    cell.border = {
+      top: { style: 'thin', color: { argb: 'FF000000' } },
+      left: { style: 'thin', color: { argb: 'FF000000' } },
+      bottom: { style: 'thin', color: { argb: 'FF000000' } },
+      right: { style: 'thin', color: { argb: 'FF000000' } }
+    };
+
+    // Alternating row colors
+    if (rowNum % 2 === 0) {
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFF2F2F2' } // Same gray as detail sheet
+      };
+    }
+
+    // Center align for both columns (same as detail sheet pattern)
+    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    
+    // Make total quantity column bold and highlighted (same as detail sheet)
+    if (cell._column._key === 'totalQuantity') {
+      cell.font = { bold: true };
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFE6F3FF' } // Same light blue background as detail sheet
+      };
+    }
+  });
+}
+
 
     // Generate filename and download
     const currentDate = new Date().toISOString().split('T')[0];
-    const filename = `pharmacy-orders-grouped-${currentDate}.xlsx`;
+    const filename = `pharmacy-orders-${currentDate}.xlsx`;
 
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -210,7 +292,7 @@ const formatDateForExcel = (dateString) => {
     a.click();
     window.URL.revokeObjectURL(url);
 
-    showSuccessModal(`Orders exported successfully! Downloaded as ${filename}`);
+    showSuccessModal(`Orders exported successfully! Downloaded as ${filename} with 2 sheets: Detailed Orders & Summary`);
     
   } catch (error) {
     console.error('Export error:', error);
