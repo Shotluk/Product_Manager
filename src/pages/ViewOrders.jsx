@@ -10,8 +10,6 @@ const ViewOrders = ({ orders, setCurrentPage, updateOrderStatus, deleteOrder, re
 
   const [showTooltip, setShowTooltip] = useState(false);
 
-  const [deletePin, setDeletePin] = useState('');
-  const [currentDeleteOrder, setCurrentDeleteOrder] = useState(null);
 
   // Date filtering state
   const [selectedDate, setSelectedDate] = useState('all');
@@ -111,21 +109,7 @@ const ViewOrders = ({ orders, setCurrentPage, updateOrderStatus, deleteOrder, re
 
   
 
-  const formatDateForExcel = (dateString) => {
-    const date = new Date(dateString);
-    
-    // Use toLocaleString to get the local timezone
-    const localDateTime = date.toLocaleString('en-GB', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric', 
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false // Use 24-hour format
-    });
-    
-    return localDateTime.replace(',', ''); // Remove comma between date and time
-  };
+  
 
   const exportToExcel = async () => {
     try {
@@ -456,14 +440,6 @@ const ViewOrders = ({ orders, setCurrentPage, updateOrderStatus, deleteOrder, re
     }
   };
 
-  const getStatusColor = (status) => {
-    switch(status) {
-      case 'Pending': return 'bg-yellow-100 text-yellow-800';
-      case 'Approved': return 'bg-blue-100 text-blue-800';
-      case 'Delivered': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
 
   const getUrgencyColor = (urgency) => {
     switch(urgency) {
