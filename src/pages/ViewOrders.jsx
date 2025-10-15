@@ -93,6 +93,7 @@ const ViewOrders = ({ orders, setCurrentPage, updateOrderStatus, deleteOrder, re
 
   const formatDateForDisplay = (dateString) => {
     const date = new Date(dateString);
+    date.setDate(date.getDate() + 1);
     return date.toLocaleDateString('en-GB', {
       weekday: 'short',
       day: '2-digit',
